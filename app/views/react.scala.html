@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello React</title>
+    <script src="https://fb.me/react-0.13.3.js"></script>
+    <script src="https://fb.me/JSXTransformer-0.13.3.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2/marked.min.js"></script>
+</head>
+<body>
+<div id="content"></div>
+<script>
+  var data = [
+    {author: "Pete Hunt", text: "This is one comment"},
+    {author: "Jonny", text: "This is *another* comment"}
+  ];
+
+  // 最終的にrenderする対象
+  var CommentBox = React.createClass({
+    loadCommentsFromServer: function() {
+      $.ajax({
+        url: this.props.url,
+        dataType: 'json',
+        cache: false,
+        success: function(data) {
+          this.setState({data: data});
+        }.bind(this),
+        error: function(xhr, status, err) {
+          console.error(this.props.url, status, err.toString());
+        }.bind(this)
+      });
+    },
+    getInitialState: function() {
+      return {data: []};
+    },
+    componentDidMount: function() {
+      this.loadCommentsFromServer();
+      setInterval(this.loadCommentsFromServer, this.props.pollInterval);
+    },
+    displayName: 'CommendBox',
+    render: function() {
+      return(
+        React.createElement("div", {className: "commentBox"},
+          React.createElement("h1", null, "Comments"),
+          React.createElement(CommentList, {data: this.state.data}),
+          React.createElement(CommentForm, null)
+        )
+      );
+    }
+  });
+
+  var CommentList = React.createClass({displayName: "CommentList",
+    render: function() {
+      var commentNodes = this.props.data.map(function(comment) {
+        return(React.createElement(Comment, {author: comment.author}, comment.text));
+      });
+      return(
+        React.createElement("div", {className: "commentList"},
+          commentNodes
+        )
+      );
+    }
+  });
+
+  var Comment = React.createClass({displayName: "Comment",
+    render: function(){
+      var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
+      return(
+        React.createElement("div", {className: "comment"},
+          React.createElement("h2", {className: "commentAuther"},
+            this.props.author
+          ),
+          React.createElement("span", {dangerouslySetInnerHTML: {__html: rawMarkup}})
+        )
+      );
+    }
+  });
+
+  var CommentForm = React.createClass({
+    handleSubmit: function(e) {
+      e.preventDefault();
+      var author = React.findDOMNode(this.refs.author).value.trim();
+      var text = React.findDOMNode(this.refs.text).value.trim();
+      if(!text || !author) {
+        return;
+      }
+
+      // TODO: send to server
+
+      // clear form
+      React.findDOMNode(this.refs.author).value = '';
+      React.findDOMNode(this.refs.text).value = '';
+      return;
+    },
+    displayName: "CommentForm",
+    render: function(){
+      return(
+        React.createElement("form", {className: "commentForm", onSubmit:this.handleSubmit},
+          React.createElement("input", {type:"text", placeholder:"Your name", ref:"author"}),
+        React.createElement("input", {type:"text", placeholder:"Say something...", ref:"text"}),
+        React.createElement("input", {type:"submit", value:"Post"})
+        )
+      );
+    }
+  });
+
+  // React.render(
+  //   React.createElement(CommentBox, {url: "http://www.mocky.io/v2/557525918dbfb7ad05088565", pollInterval: 200000}),
+  //   document.getElementById('content')
+  // );
+  React.render(
+    React.createElement(CommentBox, {url: "http://127.0.0.1:9000/api/get", pollInterval: 200000}),
+    document.getElementById('content')
+  );
+
+</script>
+
+</body>
+</html>
