@@ -15,6 +15,62 @@
     {author: "Jonny", text: "This is *another* comment"}
   ];
 
+  var Comment = React.createClass({displayName: "Comment",
+      render: function(){
+          var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
+          return(
+                  React.createElement("div", {className: "comment"},
+                          React.createElement("h2", {className: "commentAuther"},
+                                  this.props.author
+                          ),
+                          React.createElement("span", {dangerouslySetInnerHTML: {__html: rawMarkup}})
+                  )
+                  );
+      }
+  });
+
+  var CommentList = React.createClass({displayName: "CommentList",
+      render: function() {
+          var commentNodes = this.props.data.map(function(comment) {
+              return(React.createElement(Comment, {author: comment.author}, comment.text));
+          });
+          return(
+                  React.createElement("div", {className: "commentList"},
+                          commentNodes
+                  )
+                  );
+      }
+  });
+
+  var CommentForm = React.createClass({
+      handleSubmit: function(e) {
+          e.preventDefault();
+          var author = React.findDOMNode(this.refs.author).value.trim();
+          var text = React.findDOMNode(this.refs.text).value.trim();
+          if(!text || !author) {
+              return;
+          }
+
+          // send to server
+          this.props.onCommentSubmit({author:author, text: text});
+
+          // clear form
+          React.findDOMNode(this.refs.author).value = '';
+          React.findDOMNode(this.refs.text).value = '';
+          return;
+      },
+      displayName: "CommentForm",
+      render: function(){
+          return(
+                  React.createElement("form", {className: "commentForm", onSubmit:this.handleSubmit},
+                          React.createElement("input", {type:"text", placeholder:"Your name", ref:"author"}),
+                          React.createElement("input", {type:"text", placeholder:"Say something...", ref:"text"}),
+                          React.createElement("input", {type:"submit", value:"Post"})
+                  )
+                  );
+      }
+  });
+
   // 最終的にrenderする対象
   var CommentBox = React.createClass({
     loadCommentsFromServer: function() {
@@ -22,6 +78,23 @@
         url: this.props.url,
         dataType: 'json',
         cache: false,
+        success: function(data) {
+          this.setState({data: data});
+        }.bind(this),
+        error: function(xhr, status, err) {
+          console.error(this.props.url, status, err.toString());
+        }.bind(this)
+      });
+    },
+    handleCommentSubmit: function(comment) {
+      var comments = this.state.data;
+      var newComments = comments.concat([comment]);
+      this.setState({data:newComments});
+      $.ajax({
+        url: this.props.url,
+        dataType: 'json',
+        type: 'POST',
+        data: comment,
         success: function(data) {
           this.setState({data: data});
         }.bind(this),
@@ -43,62 +116,7 @@
         React.createElement("div", {className: "commentBox"},
           React.createElement("h1", null, "Comments"),
           React.createElement(CommentList, {data: this.state.data}),
-          React.createElement(CommentForm, null)
-        )
-      );
-    }
-  });
-
-  var CommentList = React.createClass({displayName: "CommentList",
-    render: function() {
-      var commentNodes = this.props.data.map(function(comment) {
-        return(React.createElement(Comment, {author: comment.author}, comment.text));
-      });
-      return(
-        React.createElement("div", {className: "commentList"},
-          commentNodes
-        )
-      );
-    }
-  });
-
-  var Comment = React.createClass({displayName: "Comment",
-    render: function(){
-      var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
-      return(
-        React.createElement("div", {className: "comment"},
-          React.createElement("h2", {className: "commentAuther"},
-            this.props.author
-          ),
-          React.createElement("span", {dangerouslySetInnerHTML: {__html: rawMarkup}})
-        )
-      );
-    }
-  });
-
-  var CommentForm = React.createClass({
-    handleSubmit: function(e) {
-      e.preventDefault();
-      var author = React.findDOMNode(this.refs.author).value.trim();
-      var text = React.findDOMNode(this.refs.text).value.trim();
-      if(!text || !author) {
-        return;
-      }
-
-      // TODO: send to server
-
-      // clear form
-      React.findDOMNode(this.refs.author).value = '';
-      React.findDOMNode(this.refs.text).value = '';
-      return;
-    },
-    displayName: "CommentForm",
-    render: function(){
-      return(
-        React.createElement("form", {className: "commentForm", onSubmit:this.handleSubmit},
-          React.createElement("input", {type:"text", placeholder:"Your name", ref:"author"}),
-        React.createElement("input", {type:"text", placeholder:"Say something...", ref:"text"}),
-        React.createElement("input", {type:"submit", value:"Post"})
+          React.createElement(CommentForm, {onCommentSubmit: this.handleCommentSubmit})
         )
       );
     }
@@ -109,7 +127,7 @@
   //   document.getElementById('content')
   // );
   React.render(
-    React.createElement(CommentBox, {url: "http://127.0.0.1:9000/api/get", pollInterval: 200000}),
+    React.createElement(CommentBox, {url: "http://127.0.0.1:9000/api", pollInterval: 200000}),
     document.getElementById('content')
   );
 

@@ -11,5 +11,5 @@ GET     /assets/*file               controllers.Assets.at(path="/public", file)
 
 GET     /react                      controllers.Application.react
 
-GET     /api/get                    controllers.API_Comment.get
-POST    /api/post                   controllers.API_Comment.post
+GET     /api                        controllers.API_Comment.get
+POST    /api                        controllers.API_Comment.post

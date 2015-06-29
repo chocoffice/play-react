@@ -16,7 +16,19 @@ object API_Comment extends Controller {
     Ok(json)
   }
 
-  def post = Action {
-    Ok(views.html.react())
+  def post = Action { implicit request =>
+    request.body.asFormUrlEncoded.fold(
+      BadRequest("Illegal parameters")
+    ){
+      parameters =>
+        val json = Json.parse("""
+                            [
+    {"author": "Pete Hunt", "text": "This is one comment"},
+    {"author": "Jordan Walke", "text": "This is *another* comment"},
+    {"author": "Added", "text": "This is *another* comment"}
+]
+                          """)
+        Ok(json)
+    }
   }
 }
